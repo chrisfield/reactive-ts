@@ -21,7 +21,6 @@ export type Signal<T> = [get: Accessor<T>, set: Setter<T>];
 
 export interface SignalState<T> {
   value?: T;
-  observers: Set<Effect>;
 }
 
 type Effect = {
@@ -39,7 +38,6 @@ export function createSignal<T>(value: T): Signal<T>;
 export function createSignal<T>(value?: T): Signal<T | undefined> {
   const s: SignalState<T> = {
     value,
-    observers: new Set(),
   };
 
   const subscriptions: Set<Effect> = new Set();
@@ -52,7 +50,6 @@ export function createSignal<T>(value?: T): Signal<T | undefined> {
 
   const setter: Setter<T | undefined> = (value?: unknown) => {
     s.value = value as any;
-    s.observers = subscriptions;
 
     for (const sub of [...subscriptions]) {
       sub.execute();
@@ -60,13 +57,7 @@ export function createSignal<T>(value?: T): Signal<T | undefined> {
     return undefined;
   };
 
-  return [readSignal.bind(s), setter];
-}
-
-export function readSignal(this: SignalState<any>) {
-  const running = context[context.length - 1];
-  if (running) subscribe(running, this.observers);
-  return this.value;
+  return [read, setter];
 }
 
 function cleanup(running: Effect) {
